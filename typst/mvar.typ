@@ -1,6 +1,6 @@
 // typst implementation of mvar system
 
-/* // Worst practice
+/*
 #set text(
   font: "New Computer Modern"
 )
