@@ -1,0 +1,7 @@
+b,2.5675,-,-
+c,45,-,-
+d_3,456,-,-
+lab,\frac{1}{x},-,-
+cd,abcgefsdvgfaiijvnbarfigjbn,-,-
+d_!3,1234,-,-
+tt,1e-05,-,-

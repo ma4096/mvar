@@ -1,0 +1,32 @@
+\documentclass[11pt,a4paper,sans]{article}
+\usepackage{amsmath}
+\input{MLtransfer.tex}
+
+%\loadvariables{t}{test.txt}
+
+\loadvariables{m}{../matlab/test.txt}
+\loadvariables{d}{test.txt}
+\begin{document}
+	%\tb
+	test
+	
+	\mvarsi{d}{tt}{N}
+	%\num{\mvar{d}{tt}}
+	%\SI{\mvar{d}{tt}}{N}
+	\begin{align}
+		\mvar{d}{lab}
+	\end{align}
+	\mvarsi{d}{b}{N}
+	
+	\mvar{d}{cd}
+	$\mvar{t}{d_3}$
+	
+	%\mvar{t}{t}
+	\mvaristrue{t}{f}{Die Bedingung ist wahr
+	
+	test}{\mvar{t}{t} ist falsch \begin{align}
+			1+1=2
+		\end{align}}
+
+	\input{./unterordner/unterdok}
+\end{document}

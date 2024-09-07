@@ -1,0 +1,7 @@
+b,2.568,m/s,Geschwindigkeit des Balls
+c,45,-,-
+chr,\frac{\varphi }{x}+x^2,-,-
+d_3,  \begin{pmatrix}   13.000 \cr   15.000 \cr   149.000 \cr   132.000  \end{pmatrix},-,-
+t,0,kg,-
+f,1,e,-
+l,False,logic,-
