@@ -30,6 +30,7 @@
 \usepackage{forloop}
 \usepackage{siunitx}
 
+
 \ExplSyntaxOn
 % because we want different ior variables for each instance of loadvariables{...} and ior_str_map_inline doesnt natively accept "variable" names 
 \cs_generate_variant:Nn \ior_str_map_inline:Nn { c } 
@@ -37,6 +38,10 @@
 \cs_generate_variant:Nn \tl_if_eq:nnTF { V }
 
 \newcommand{\loadvariables}[2]{
+	% this is a dummy command to find the reference to transfer files during precompilation. The real work is being done by \_loadvariables below
+}
+
+\newcommand{\backgroundloadvariables}[2]{
 	\krishna_csv_load:nn {#1} {#2} % 1: Namespace, 2: Filename/Path
 }
 % Copied from https://tex.stackexchange.com/questions/474397/populate-information-from-a-csv-file-into-a-latex-document-specifically-into-th/474404#474404
@@ -54,23 +59,27 @@
 {
 	\ior_new:c {l__krishna_ior_#1_tmpa} % reserves name of IO-Stream
 	\ior_open:cn {l__krishna_ior_#1_tmpa} {#2} % load the File into the IO-Stream
-	\seq_new:c {l__krishna_  #1 _seq } % l__krishna_ #1_seq, das was vorher als frei registriert wurde
+	\seq_new:c {l__krishna_ #1 _seq } % l__krishna_ #1_seq, das was vorher als frei registriert wurde
 	\prop_new:c {l__krishna_ #1 _prop} % new
+	\seq_new:c {l__krishna_  #1 _seq_unit}
+	%\prop_new:c {l__krishna_ #1 _prop_unit}
 	%\exp_args:Nc \__krishna_csv_read:N { #1 _seq } % fully expanded
 	%\ior_str_map_inline:cn {l__krishna_ior_#1_tmpa}  { \seq_put_right:cn {l__krishna_ #1_seq} {##1} }  % new
 	\ior_map_inline:cn {l__krishna_ior_#1_tmpa}  { \seq_put_right:cn {l__krishna_ #1_seq} {##1} }  % new
 
 	% TODO Cant currently access Description or name
-	% TODO Change the delimieter to \t here, how?
+	% TODO Change the delimiter to \t here, how?
 	\seq_map_inline:cn {l__krishna_ #1 _seq}  { \prop_put:cxx {l__krishna_ #1_prop} {\clist_item:nn {##1}{1}} {\clist_item:nn{##1}{2}} }  % new
-	
+	\seq_map_inline:cn {l__krishna_ #1 _seq}  { \prop_put:cxx {l__krishna_ #1_prop_unit} {\clist_item:nn {##1}{1}} {\clist_item:nn{##1}{3}} }
+
+
 	\ior_close:c {l__krishna_ior_#1_tmpa}
 }
 \cs_new:Npn \__krishna_csv_read:N #1
 {
 	%\ior_str_map_inline:Nn \l__krishna_ior_tmpa  { \seq_put_right:Nn #1 {##1} }
 }
-\cs_new:Npn \krishna_csv_get:nnn #1 #2 #3
+\cs_new:Npn \krishna_csv_get:nnn #1 #2 #3 % not used
 {
 	\exp_args:Nf
 	\clist_item:nn % comma list WIE AUF \t UMSTELLEN?????
@@ -84,15 +93,21 @@
 {
 	\prop_item:cn {l__krishna_ #1 _prop} {#2}
 }
+\newcommand{\mvarunit}[2]
+{
+	\prop_item:cn {l__krishna_ #1 _prop_unit} {#2}
+}
 % Logic function: if value is 1 do true part, otherwise true
 \newcommand{\mvaristrue}[4]  %#1=namespace, #2=variablename, #3=text if true, #4=text if false
 {
 	\int_set:Nn \l_tmpa_int {\int_eval:n {\prop_item:cn {l__krishna_ #1_prop}{#2}}}
 	\int_compare:nNnTF {\l_tmpa_int} = {1} {#3} {#4}
 }
-\newcommand{\mvarsi}[3]
+\newcommand{\mvarsi}[2] %[3]
 {
 	%\mvar{#1}{#2}\,\si{#3}
-	\SI{\mvar{#1}{#2}}{#3}
+	%\SI{\mvar{#1}{#2}}{#3}
+	\SI{\mvar{#1}{#2}}{\mvarunit{#1}{#2}}
 }
 \ExplSyntaxOff
+

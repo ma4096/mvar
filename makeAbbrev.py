@@ -14,34 +14,29 @@ def toTexTable(s, h, f, makeHeader = True, vlines = False, hlines = True):
     t = [] # main table into which each row gets printed as a string
     midrule = ""
     if hlines:
-        midrule = "\\midrule"
+        midrule = "\\hline"
 
-    headline = "\\begin{longtable}{p{.1\\textwidth} p{.1\\textwidth} p{.1\\textwidth} p{.70\\textwidth}}"
+    headline = "\\begin{longtable}{p{.13\\textwidth} p{.1\\textwidth} p{.07\\textwidth} p{.70\\textwidth}}"
     if vlines:
         headline = "\\begin{longtable}{p{.1\\textwidth}|p{.1\\textwidth}|p{.1\\textwidth}|p{.70\\textwidth}}"
 
-    #t.append("\\begin{table}[ht]")
-    #t.append("\\begin{center}")
-    #t.append("\\label{tab: abbrev}")
-    #t.append(f"\\begin{{tabularx}}{{\\textwidth}}{{{str('l ' * (len(h)-1))} X}}")
     t.append(headline)
     if makeHeader:
         t.append("&\t".join(h) + f"\\\\{midrule}")
+
     acdc = 0
     for i in s:
-        #print(i)
         if pd.isnull(i[3]):
             acdc += 1
             if acdc == 1:
                 print("Catched mistakes or comments, not enough rows, maybe a tab missing?")
-            #print(i)
             continue
-        t.append("&\t".join([str(j) for j in i]) + "\\\\\\midrule")
+        if "_" in i[0]: # encase math names in math environment
+            i[0] = f"${i[0]}$"
+
+        t.append("&\t".join([str(j) for j in i]) + f"\\\\{midrule}")
     t.append("\\end{longtable}")
-    #t.append("\\end{tabularx}")
-    #t.append("\\end{center}")
-    #t.append("\\end{table}")
-    #print(t)
+    
     with open(f"{f}.tex","w") as file:
         file.writelines("\n".join(t))
     return
@@ -58,6 +53,7 @@ def sortTable(t,row):
 
 
 if __name__ == "__main__":
+    # just for testing
     old = pd.read_csv("abbrev.csv",header=0,sep="\t")
     #s = list(old.sort_values("Zeichen").to_numpy())
     #print(s)

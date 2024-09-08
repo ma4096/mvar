@@ -4,6 +4,7 @@ from collections import Counter
 import makeAbbrev
 import pandas as pd
 import numpy as np
+import sys
 
 class mvar:
 	def __init__(self, basePath, configPath="config.ini"):
@@ -40,7 +41,8 @@ class mvar:
 			for l in loaderC:
 				if l in s:
 					includeLines.append(s)
-			if loaderV in s:
+			if loaderV in s and "\\verb|" not in s:
+				# last one is an edge case were you are citing \loadvariables in a verbatim environment  
 				loadvarsLines.append(s)
 
 		curdir = "/".join(path.split("/")[:-1]) + "/"
@@ -54,7 +56,7 @@ class mvar:
 			#path = self.basedir + filterLoadvarsLatex(l)["path"]
 			#name = filterLoadvarsLatex(l)["name"]
 			#originpath = curdir
-			loadvars = [transferfile(self.basedir + filterLoadvarsLatex(l)["path"], filterLoadvarsLatex(l)["name"], path, delim=self.delim, doctype=self.doctype) for l in loadvarsLines]
+			loadvars = [transferfile(curdir + filterLoadvarsLatex(l)["path"], filterLoadvarsLatex(l)["name"], path, self.basedir, delim=self.delim, doctype=self.doctype) for l in loadvarsLines]
 		elif self.doctype == "typ":
 			includes = [re.split('(|)', l)[-2] for l in includeLines]
 		#print(loadvars)
@@ -70,6 +72,7 @@ class mvar:
 			path = queue[0]
 			try:
 				with open(path, "r") as file:
+					# this path ends up in the transferfile as originpath
 					res = self.getChildrenAndLoadvars(file, path)
 					loadvars += res["vars"]
 					#names += res["names"]
@@ -83,6 +86,7 @@ class mvar:
 					queue.pop(0)
 			except OSError:
 				print(f"File {path} not found.")
+				queue.pop(0)
 
 		#self.names = names
 		self.loadvars = loadvars
@@ -120,9 +124,8 @@ class mvar:
 		
 		return goodtogo
 
-	def makeabbrevtable(self, escape=[], path=None):
+	def makeabbrevtable(self, path=None):
 		# build abbrev table and safe it
-		# escape: give namespace in array like ["a"] for that namespace to not be included in the table
 		self.abbrev = {"exists": True}
 		self.abbrev["sortc"] = self.config["ABBREV"]["coloumnsort"].split(" ")
 		self.abbrev["sortr"] = self.config["ABBREV"]["sortby"]
@@ -130,21 +133,33 @@ class mvar:
 		self.abbrev["makeHeader"] = strtobool(self.config["ABBREV"]["header"])
 		self.abbrev["vlines"] = strtobool(self.config["ABBREV"]["verticalLines"])
 		self.abbrev["hlines"] = strtobool(self.config["ABBREV"]["horizontalLines"])
+		
+		# block certain namespaces from being included
+		escape = self.config["ABBREV"]["escapeNamespace"].split("|")
 
+		#print(self.loadvars)
 		tab = []
 		for l in self.loadvars:
 			if l.name not in escape:
-				tab += l.content
+				for v in l.content:
+					if bool(re.match(r'[0-9](\.)?[0-9]*[e]?[\-]?[0-9]*$', v[1])):
+						tab.append(v)
+					elif v[1] == "-": # also enter abbreviation/variables without a value (default value -)
+						tab.append(v)
+			else:
+				print(f"Namespace {l.name} has been excluded from list of abbreviations as per config.ini")
+		
+		#print(tab)
 
 		df_raw = pd.DataFrame(tab, columns=["name", "val", "unit", "description"])
 		df = df_raw[self.abbrev["sortc"]]
 		df = makeAbbrev.sortTable(df, self.abbrev["sortr"])
 		df.columns = self.abbrev["coloumns"]
 		# df: pandas dataframe with sorted coloumns 
-
+		#print(tab, df_raw, df)
 		if self.doctype == "tex":
 			if path == None:
-				path = "abbrev"
+				path = f"{self.basedir}/abbrev"
 			tabletex = df.to_numpy()
 			makeAbbrev.toTexTable(tabletex, self.abbrev["coloumns"], path, makeHeader=self.abbrev["makeHeader"], vlines=self.abbrev["vlines"], hlines=self.abbrev["hlines"])
 
@@ -154,12 +169,12 @@ class mvar:
 			for l in self.loadvars:
 				content += f"{l.tocommand()}\n"
 			if path == None:
-				path = "loader_collection.tex"
+				path = f"{self.basedir}/loader_collection.tex"
 
 		elif self.doctype == "typ":
 			content = "not yet implemented for typst" # not yet implemented
 			if path == None:
-				path = "loader_collection.typ"
+				path = f"{self.basedir}/loader_collection.typ"
 
 		with open(path, "w") as f:
 			f.write(content)
@@ -168,14 +183,25 @@ class mvar:
 
 class transferfile:
 	# basically csv parser with bonus steps...
-	def __init__(self, path, name, originpath, delim=",", doctype=None):
-		self.path = path
-		self.name = name
-		self.originpath = originpath
+	def __init__(self, path, name, originpath, basedir, delim=",", doctype=None):
+		self.path = path # path of this transferfile relative to the python script
+		self.name = name # namespace name
+		self.originpath = originpath # path of the doc with the reference to this transfer file rel to python script
 		self.content = []
 		self.delimiter = delim
 		self.doctype = doctype
-
+		self.basedir = basedir # dir of the main document main.tex/typ rel to the python script
+		
+		# relative path from the main doc to this transfer file:
+		# this assumes that basedir starts the same as path!
+		spath = path.split("/") # this is always longer than sdir
+		sdir = basedir.split("/")
+		diff = spath
+		for i,p in enumerate(sdir):
+			if diff[0] == sdir[i]:
+				diff.pop(0)
+		self.relpath = "./" + "/".join(diff)
+	
 	def loadvars(self):
 		self.content = []
 		with open(self.path, "r") as file:
@@ -190,10 +216,10 @@ class transferfile:
 	def tocommand(self, newpath=None):
 		# newpath: if the command will be called from another then the standard directory, change the path. Not yet implemented!
 		if self.doctype == None:
-			print(f"Error: no doctype declared for transferfile from {self.path} in initalisation of this transferfile object")
+			print(f"Error: no doctype declared/detected for transferfile from {self.path} in initalisation of this transferfile object")
 			return 0
 		if self.doctype == "tex":
-			return f"\\_loadvariables{{{self.path}}}"
+			return f"\\backgroundloadvariables{{{self.name}}}{{{self.relpath}}}"
 		elif self.doctype == "typ":
 			1+1 # not yet implemented
 
@@ -236,15 +262,36 @@ def strtobool(val):
         raise ValueError("invalid truth value %r" % (val,))
 
 if __name__ == "__main__":
-	tex = mvar("./latex/test.tex")
-	typst = mvar("./typst/test.typ")
-	#print(tex.doctype)
-	#print(typst.doctype)
-	#print(tex.basedir)
-	tex.collect()
-	print(tex.loadvars[1].path)
-	tex.loadloadvars()
-	#print(tex.checkconflicts())
+	args = sys.argv # for command line interface
+	if len(args) == 1:
+		print("Not enough arguments given, displaying help:")
+		help = '''Precompiler for the mvar system. Usage:
+		mvar.py [doc] -na
+		[doc]: file/path to your main document file (like ./folder/main.tex or main.typ)
+		-na: no abbreviations, dont build a (new) list of abbreviations.
+		manually configure the list of abbreviations in config.ini'''
+		print(help)
+		quit()
+	elif args[1] == "testing": # for testing during development
+		tex = mvar("./latex/test.tex")
+		typst = mvar("./typst/test.typ")
+		#print(tex.doctype)
+		#print(typst.doctype)
+		#print(tex.basedir)
+		tex.collect()
+		print(tex.loadvars[1].path)
+		tex.loadloadvars()
+		#print(tex.checkconflicts())
 
-	#tex.makeabbrevtable()
-	tex.ziploadvariables()
+		#tex.makeabbrevtable()
+		tex.ziploadvariables()
+		quit()
+
+	# normal operation
+	doc = mvar(args[1])
+	doc.collect()
+	doc.loadloadvars()
+	doc.checkconflicts()
+	doc.ziploadvariables()
+	if not "-na" in args:
+		doc.makeabbrevtable()

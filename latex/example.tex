@@ -1,0 +1,44 @@
+% example for LaTeX
+
+\documentclass[11pt,a4paper,sans]{article}
+\usepackage{amsmath}
+\usepackage{longtable} % the longtable is required by the list of abbreviations
+\input{MLtransfer.tex}
+
+\input{loader_collection.tex}
+
+% example of cross reference: takes the text.txt from the matlab folder
+\loadvariables{m}{../matlab/test.txt} 
+\begin{document}
+	%\tb
+	This is an example for the usage of the mvar system in \LaTeX.
+	
+	You can import transfer files inside or outside of the \verb|\begin{document}| using \verb|\loadvariables{d}{test.txt}| where d is the namespace given to the loaded variables from the transfer file test.txt. In the source for this pdf  \verb|example.tex| I have done so below:
+	\loadvariables{d}{test.txt}
+	
+	The transferfile \verb|test.txt| contains a variable $tt$ with the value $\mvar{d}{tt}$\footnote{If you want to have it in the correct notation you can encase it in the num command to show $\num{\mvar{d}{tt}}$ } which can also be displayed with its (SI-) unit to $\mvarsi{d}{tt}$. This is being archieved with \verb|\mvar{d}{tt}| and \verb|\mvarsi{d}{tt}|.
+	
+	That file also contains a symbolic expression (formula)
+	\begin{align}
+		\mvar{d}{lab}.
+	\end{align}
+	
+	The following text has been loaded from the transfer file: \mvar{d}{cd}
+	
+	This following variable ($d_3$ from the file \verb|./unterordner/test6.txt|) is a vector directly exported from Matlab:
+	$$d_3 = \mvar{t}{d_3}$$
+	Its transfer file has been loaded as the namespace $t$ in another file in a subdirectory of this \verb|example.tex| after its usage. This is possible due to the precompilation, which allows for free restructuring of your document without worrying about breaking references.
+	\input{./unterordner/unterdok}
+	
+	If you want to use logical building blocks for automated documents, you can use logical variables which uses 1 for True and 0 for False. This can be used with \verb|\mvaristrue{[namespace]}{[var name]}{[text if True]}{[text if False]}|. Example:
+	\mvaristrue{t}{logic}{
+		This text is printed if the variable $logic$ in the namespace $t$ is 1 (True)
+		}{
+		This text is printed if the variable $logic$ in the namespace $t$ is 0 (False)
+		}
+		
+	The following list of abbreviations has been automatically generated during precompilation:
+	\input{abbrev.tex}
+	It only includes numerical variables or abbreviations that don't have a value (the default value -).
+
+\end{document}
