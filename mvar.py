@@ -225,6 +225,7 @@ class transferfile:
 
 
 
+
 def filterInputLatex(s):
 	# gets a string like ...\input{./abc/tes.tex}...
 	# return only ./abc/tes.tex, where .tex is not guaranted
@@ -265,12 +266,12 @@ if __name__ == "__main__":
 	args = sys.argv # for command line interface
 	if len(args) == 1:
 		print("Not enough arguments given, displaying help:")
-		help = '''Precompiler for the mvar system. Usage:
+		helpstr = '''Precompiler for the mvar system. Usage:
 		mvar.py [doc] -na
 		[doc]: file/path to your main document file (like ./folder/main.tex or main.typ)
 		-na: no abbreviations, dont build a (new) list of abbreviations.
 		manually configure the list of abbreviations in config.ini'''
-		print(help)
+		print(helpstr)
 		quit()
 	elif args[1] == "testing": # for testing during development
 		tex = mvar("./latex/test.tex")

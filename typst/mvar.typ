@@ -12,16 +12,15 @@
 // si units
 #import "@preview/unify:0.6.0": qty
 
-#let results = (0,1)
-#let loadvariables(path) = {
-	// hier eventuell mal anderen delimiter setzen
-	let d2a = csv(path)
-	
-	// for eventually debugging errors with 
+//#let results = (0,1)
+#let m // standard namespace for typst-fullsuite.py, needs to declared, can be overwritten.
+
+// splitted to also just be able to load variables from an array. See typst-fullsuite.py :)
+#let parse_dict(d2a) = {
 	let results = (debug: d2a)
 	for (key, val, unit, description) in d2a {
 		//[#key \ ]
-		if "\\" in val { // detect latex
+		if "\\" in val { // detect latex, for e.g. formulas
 			val = mitex(val) // currently not fully working, 
 		} else if unit == "logic" {
 			val = val
@@ -34,6 +33,17 @@
 	}
 	return results
 }
+
+
+#let loadvariables(path) = {
+	// hier eventuell mal anderen delimiter setzen
+	let d2a = csv(path)
+	
+	let results = parse_dict(d2a)
+	
+	return results
+}
+
 
 #let mlogic(var, tr, fa) = {
 	if var == "1" {
