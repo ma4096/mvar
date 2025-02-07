@@ -86,7 +86,8 @@ Access variable with unit (add si): //this can lead to nameconflicts if text.txt
 $ #a.bsi $
 #mlogic(a.l,[true],[false]) // if a.l == 1 (true as specified for transfer file), do accordingly. [true] could also be more complex typst code without the [] ([false] as well)
 ```
-
+### typst fullsuite
+A typst document can be used as a template for creating a fully parametrized document from a Python script using `typst_fullsuite([path to template.typ], [vars], save=[output.pdf])`. You need to include `mvar.typ` and `typst_fullsuite.py` in your directory and import the python function. See the python file for a more detailed documentation. Variables are passed as a list of lists with each variable defined as `["name",1,"-","-"]` for numbers or `["name","this is text","logic","-"]` for general strings. Also see the example for how to create a template with the variables, use `#m..variablename`, where `m` is a dictionary which is defined on compilation.  
 
 ### Precompilation (not finished!)
 Precompilation is currently working and required for LaTeX but has not yet been implemented for typst.
