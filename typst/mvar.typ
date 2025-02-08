@@ -15,6 +15,8 @@
 //#let results = (0,1)
 #let m // standard namespace for typst-fullsuite.py, needs to declared, can be overwritten.
 
+// standard for table of abbreviations, only gets defined if there is a abbreviation table to get loaded in. Can be included using #include "abbrev.typ" at some point in your document
+
 // splitted to also just be able to load variables from an array. See typst-fullsuite.py :)
 #let parse_dict(d2a) = {
 	let results = (debug: d2a)
