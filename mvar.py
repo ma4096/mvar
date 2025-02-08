@@ -18,6 +18,12 @@ class mvar:
 		self.doctype = basePath.split(".")[-1]
 
 	def getChildrenAndLoadvars(self, content, path):
+		"""Scans the supplied content for flags of loaded transferfiles and other included files (nested)
+
+		:param content: file-object/list<str> (from open(...) as f, pass f). This is the supplied content which will be crawled line by line
+		:param path: str, path of the file which content is being scanned.
+		:return: dictionary with keys "files" (list<str> of all paths of found files in the content) and "vars" (list<Transferfile Object> of found loadvariables-statements)
+		"""
 		# returns array of all paths of referenced files in content
 
 		# get what is being searched for
@@ -29,7 +35,7 @@ class mvar:
 			loaderV = "\\loadvariables{" # \loadvariables{a}{...}
 			comment = "%"
 		elif self.doctype == "typ":
-			loaderC = ["#input"]
+			loaderC = ["#include","#import"]
 			loaderV = "loadvariables(" # #a = loadvariables(...)
 			comment = "//"
 		includeLines = []
@@ -42,7 +48,7 @@ class mvar:
 				if l in s:
 					includeLines.append(s)
 			if loaderV in s and "\\verb|" not in s:
-				# last one is an edge case were you are citing \loadvariables in a verbatim environment  
+				# last one is an edge case were you are citing \loadvariables in a verbatim environment
 				loadvarsLines.append(s)
 
 		curdir = "/".join(path.split("/")[:-1]) + "/"
@@ -58,44 +64,57 @@ class mvar:
 			#originpath = curdir
 			loadvars = [transferfile(curdir + filterLoadvarsLatex(l)["path"], filterLoadvarsLatex(l)["name"], path, self.basedir, delim=self.delim, doctype=self.doctype) for l in loadvarsLines]
 		elif self.doctype == "typ":
-			includes = [re.split('(|)', l)[-2] for l in includeLines]
+			#print("Include Lines:", includeLines, loadvarsLines)
+
+			includes = [curdir + line.split('"')[1] for line in includeLines]
+			loadvars = [transferfile(curdir + filterLoadvarsTypst(l)["path"], filterLoadvarsTypst(l)["name"], path, self.basedir,delim=self.delim, doctype=self.doctype) for l in loadvarsLines]
 		#print(loadvars)
 		#, "names": [ for l in loadvarsLines]}
+		print(f"getChildrenAndLoadvars() on {path} found {len(loadvars)} mentioned transferfiles: {loadvarsLines}")
 		return {"files": includes, "vars": loadvars}
 
 	def collect(self):
+		print(f"Started collecting all loaded transferfiles in the project/document {self.basepath}")
 		queue = [self.basepath]
 		history = [self.basepath]
 		loadvars = []
+
+		excludes = ["mvar.typ"] # list of files which should not be crawled/scanned
 		#names = []
 		while len(queue) > 0:
 			path = queue[0]
 			try:
 				with open(path, "r") as file:
 					# this path ends up in the transferfile as originpath
+					print(f"\nNow scanning {path}...")
 					res = self.getChildrenAndLoadvars(file, path)
 					loadvars += res["vars"]
 					#names += res["names"]
 					news = []
 					for f in res["files"]:
-						if f not in history:
+						if f not in history and f.split("/")[-1] not in excludes:
 							news.append(f)
 					queue += news
 					history += news
-
+					print(f"Scanned {path}, newly added paths to the queue: {news}")
 					queue.pop(0)
 			except OSError:
-				print(f"File {path} not found.")
+				print(f"mvar: collect(): File {path} not found.")
 				queue.pop(0)
+			print(f"Remaining length of queue: {len(queue)}")
 
 		#self.names = names
 		self.loadvars = loadvars
 		self.crawledfiles = history
 		#print(loadvars)
+		print(f"End of collection, found in total {len(loadvars)} loaded transferfiles when scanning {len(history)} files\n-------------------------------------------")
 
 	def loadloadvars(self):
+		print(f"Now loading a total of {len(self.loadvars)} transferfile:")
+		self.total_num_of_vars = 0 # statistics :)
 		for l in self.loadvars:
-			l.loadvars()
+			self.total_num_of_vars += l.loadvars()
+		print(f"Done loading all the transferfiles, found a total of {self.total_num_of_vars} variables.\n-------------------------------------------")
 
 	def checkconflicts(self):
 		# output warnings and errors if there are namespaces of loaded transferfiles used multiple times
@@ -115,7 +134,7 @@ class mvar:
 					for l in self.loadvars:
 						if l.name == key:
 							doubles += f"\n\t{l.name} for {l.path} in {l.originpath}"
-			print(f"Error while collecting transfer files: A namespace is used multiple times!{doubles}")
+			print(f"Error while collecting transfer files: A namespace is used multiple times! {doubles}")
 		# check if the variable names are not equal, collect all names:
 		elif len(set(varnames)) != len(varnames):
 			print("Warning while collecting transfer files: A variable name is used multiple times")
@@ -125,6 +144,12 @@ class mvar:
 		return goodtogo
 
 	def makeabbrevtable(self, path=None):
+		"""Build a table of abbreviations from all loaded transferfiles/variables/namespaces. This is heavily dependent on config.ini, where you set attributes like a header (in your language), escaped namespaces (that should not be included), etc. 
+
+		:param path: optional str, filename/path to where it should be saved. Default None results in abbrev.typ/.tex in the root directory of the project.
+		"""
+
+		print(f"Now building the table of abbreviations.")
 		# build abbrev table and safe it
 		self.abbrev = {"exists": True}
 		self.abbrev["sortc"] = self.config["ABBREV"]["coloumnsort"].split(" ")
@@ -137,7 +162,7 @@ class mvar:
 		# block certain namespaces from being included
 		escape = self.config["ABBREV"]["escapeNamespace"].split("|")
 
-		#print(self.loadvars)
+		# collect all variables of all namespaces, which are not in the escape configuration, to one large table.
 		tab = []
 		for l in self.loadvars:
 			if l.name not in escape:
@@ -149,7 +174,7 @@ class mvar:
 			else:
 				print(f"Namespace {l.name} has been excluded from list of abbreviations as per config.ini")
 		
-		#print(tab)
+		print(f"A total of {len(tab)} variables fit the scheme, they either numerical (e.g. 'xx.xx' or 'xx.xx*e-xx.xx') or don't have a value ('-'), as they are abbreviations. A total of {self.total_num_of_vars-len(tab)} variables have been excluded, as they don't fit in the scheme")
 
 		df_raw = pd.DataFrame(tab, columns=["name", "val", "unit", "description"])
 		df = df_raw[self.abbrev["sortc"]]
@@ -159,11 +184,26 @@ class mvar:
 		#print(tab, df_raw, df)
 		if self.doctype == "tex":
 			if path == None:
-				path = f"{self.basedir}/abbrev"
+				path = f"{self.basedir}abbrev"
 			tabletex = df.to_numpy()
 			makeAbbrev.toTexTable(tabletex, self.abbrev["coloumns"], path, makeHeader=self.abbrev["makeHeader"], vlines=self.abbrev["vlines"], hlines=self.abbrev["hlines"])
 
+		elif self.doctype == "typ":
+			if path == None:
+				path = f"{self.basedir}abbrev.typ"
+				print(self.basedir)
+			table = df.to_numpy()
+			print()
+			makeAbbrev.toTypstTable(table, path, h=self.abbrev["coloumns"], vlines=self.abbrev["vlines"], hlines=self.abbrev["hlines"], col_width=["13%","10%","10%","67%"],align="left")
+		print(f"The table of abbreviations has been written to {path}.\n-------------------------------------------")
+
+
 	def ziploadvariables(self, path=None):
+		"""Export all loadvars into one file so it can be loaded centrally. This is useful for LaTeX documents, so you can reference variables/namespaces that where imported in other files in the same document. 
+		But variables can also just be used after being loaded in the document, also in other files. Zipping is usefull if you want to move around chapters without worrying where to load the transferfiles, as it loads them all in the beginning.
+
+		:param path: optional string, path to the file (with .tex/.typ extension) where the collection should be saved.
+		"""
 		content = ""
 		if self.doctype == "tex":
 			for l in self.loadvars:
@@ -207,6 +247,8 @@ class transferfile:
 		with open(self.path, "r") as file:
 			for l in file:
 				self.content.append(l.strip("\n").split(self.delimiter)[0:4])
+		print(f"Transferfile '{self.path}' for the namespace '{self.name}' contains these variables (total of {len(self.content)}): {[a[0] for a in self.content]}\n")
+		return len(self.content) # for statistics :)
 
 	def varnames(self):
 		if len(self.content) == 0:
@@ -246,6 +288,24 @@ def filterLoadvarsLatex(s):
 	index = li.index("loadvariables") + 3
 
 	return {"path": li[index].removeprefix("./"), "name": li[index-2]}
+
+def filterLoadvarsTypst(s):
+	"""get a line like "#let a = loadvariables('test.txt')" and give the namespace and the path. Primarily used when loading/finding loadvariables uses in a typst doc. This parser is not perfect, please just use the loadvariables()-func just like this in your typ doc and just dont use spaces in your path/filenames...
+
+	:param s: str of the line
+	:return: dictionary with "name": str of the namespace (e.g. "a") and "path" of the file (e.g. "text.txt")
+	"""
+	a = s.split(" ")
+	if len(a) != 4 and len(a) != 5:
+		raise ValueError(f"mvar: filterLoadvarsTypst(): The line '{s}' doesn't follow the rules of how loadvariables should be used in a typst document, so it can't be parsed (this parser is bad :D). Please always load your transferfiles using exactly this structure, one per line: '#set a = loadvariables(\"folder/test.txt\")'. If your line seems similar, make sure the path to the transferfile does not have any spaces!")
+	name = a[1]
+	path = ""
+	if '"' in a[3]:
+		path = a[3].split('"')[1]
+	else:
+		path = a[3].split("'")[1]
+	return {"name": name, "path": path}
+
 
 def strtobool(val):
 	# from https://stackoverflow.com/questions/715417/converting-from-a-string-to-boolean-in-python

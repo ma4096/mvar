@@ -3,11 +3,13 @@
  This project is still in its very early stages and you may find comments like "not yet implemented" in the code as well as rudimentary test files in the directories. If you just want to interface between LaTeX and Matlab, feel free to use the (more stable) implementation in [matlab-latex-variables](https://github.com/ma4096/matlab-latex-variables). 
 
 ## Disclaimer
+Always make a backup of your project before experimenting with these functionalities. Some scripts directly write to files with paths you specify or default relative paths `abbrev.typ/.tex`, `[your project]-precompiled.typ` or `loader_collection.typ/.tex`. If you already have these files, they will be overwritten without mercy. When you input your own files/paths, make sure you read the function docs (which I am currently working on) and don't confuse an input with an output. 
+
 I am not a professional software developer and do this project for fun. This project tree is quite unorganized with each folder containing the implementation in the given language as well as examples and general testing I use in development. The root contains the precompiler.
 
 ## Motivation
-When writing documentation of technical projects in latex, I often had to update values I got from calculations in Matlab (due to miscalculations or changed specifications). As this is boring and annoying work, I implemented these scripts/functions to be able to reference matlab variables directly in my documents so they update automatically. It grew to also accept input from Python and output to typst, an upcoming LaTeX alternative.
-The name mvar originally comes from matlab variable.
+When writing documentation of technical projects in LaTeX, I often had to update values I got from calculations in Matlab (due to miscalculations or changed specifications). As this is boring and annoying work, I implemented these scripts/functions to be able to reference matlab variables directly in my documents so they update automatically. It grew to also accept input from Python and output to typst, an upcoming LaTeX alternative. 
+The name mvar originally comes from matlab variables.
 
 ## Usage
 There are currently three parts: Some software/script (Python or Matlab) inputs variables into a transfer file (csv) which then get loaded/parsed into an output document-script (LaTeX or typst). In the document the variables can be referenced (details below) with or without the unit. 

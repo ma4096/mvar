@@ -2,4 +2,4 @@
 
 //__fullsuite__
 
-Die Variable $a= #m..a $ wurde dynamisch bei der Kompilierung erzeugt.
+Die Variable $a= #m..a$ wurde dynamisch bei der Kompilierung erzeugt.

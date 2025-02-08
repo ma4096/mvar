@@ -38,7 +38,8 @@
 \cs_generate_variant:Nn \tl_if_eq:nnTF { V }
 
 \newcommand{\loadvariables}[2]{
-	% this is a dummy command to find the reference to transfer files during precompilation. The real work is being done by \_loadvariables below
+	% if I eventually choose to delete this feature of precompilation/collection, as it may cause problems, just rename the backgroundloadvariables to loadvariables
+	\krishna_csv_load:nn {#1} {#2}
 }
 
 \newcommand{\backgroundloadvariables}[2]{
