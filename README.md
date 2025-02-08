@@ -92,13 +92,13 @@ $ #a.bsi $
 A typst document can be used as a template for creating a fully parametrized document from a Python script using `typst_fullsuite([path to template.typ], [vars], save=[output.pdf])`. You need to include `mvar.typ` and `typst_fullsuite.py` in your directory and import the python function. See the python file for a more detailed documentation. Variables are passed as a list of lists with each variable defined as `["name",1,"-","-"]` for numbers or `["name","this is text","logic","-"]` for general strings. Also see the example for how to create a template with the variables, use `#m..variablename`, where `m` is a dictionary which is defined on compilation.  
 
 ### Precompilation (not finished!)
-Precompilation is currently working and required for LaTeX but has not yet been implemented for typst.
+Precompilation is currently working and but not required for LaTeX and has not yet been implemented for typst.
 
 Here the list of abbreviations is build from all the imported transfer files in a given document (LaTeX/typst), where the type of document is determined by the file extension.
 Also all the imported transfer files are collected into a single file called `loader_collection.tex`, from where they are imported into the document at its compilation instead from all over the place inside the document to allow for cross references. This feature is still under construction and not fully working! 
 
 To perform the precompilation execute `mvar.py` in your projects main directory:
-``` python mvar.py main.tex ```
+``` python mvar.py main.tex -p```
 You can also skip generating the list of abbreviations by adding the flag `-na` (no abbreviation)
 The configuration for list of abbreviations is specified in `config.ini` where you can edit the appearance/order of coloumns and rows (documented in place). It is only yet implemented for LaTeX and only includes numerical (scalar) variables or abbreviations which don't have a value (default value `-`). 
 

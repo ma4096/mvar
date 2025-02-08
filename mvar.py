@@ -330,7 +330,8 @@ if __name__ == "__main__":
 		mvar.py [doc] -na
 		[doc]: file/path to your main document file (like ./folder/main.tex or main.typ)
 		-na: no abbreviations, dont build a (new) list of abbreviations.
-		manually configure the list of abbreviations in config.ini'''
+		manually configure the list of abbreviations in config.ini
+		-p: do a precompilation, where all the transferfiles are loaded in a central file so they are available throughout the entire document. Really not that useful and rarely needed :)'''
 		print(helpstr)
 		quit()
 	elif args[1] == "testing": # for testing during development
@@ -353,6 +354,7 @@ if __name__ == "__main__":
 	doc.collect()
 	doc.loadloadvars()
 	doc.checkconflicts()
-	doc.ziploadvariables()
+	if "-p" in args:
+		doc.ziploadvariables()
 	if not "-na" in args:
 		doc.makeabbrevtable()
