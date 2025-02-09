@@ -32,4 +32,12 @@ Testing basic table behaviour:
 )
 
 Table of abbreviations:
-#include "abbrev.typ"
+#show figure: set block(breakable: true)
+
+//#figure(
+	#block(
+		breakable: true,
+		include "abbrev.typ"
+		//[#lorem(4000)]
+	)
+//)

@@ -7,21 +7,34 @@ import numpy as np
 import sys
 
 class mvar:
-	def __init__(self, basePath, configPath="config.ini"):
-		self.basepath = basePath
+	"""Class implementing management of the usage of the mvar system in a LaTeX or Typst document.
+
+	:param basepath: path to the main document file (like "main.tex"), from where all other files are included.
+	:type basepath: str
+	:param configpath: path to the configuration file, must end with ".ini"
+	:type configpath: str, optional
+	:raises ValueError: if configpath does not end with ".ini" file extension
+	"""
+	def __init__(self, basepath, configpath="config.ini"):
+		#: str, path to the root document file like "main.tex/.typ"
+		self.basepath = basepath 
 		# Loading configuration
+		if ".ini" != configpath[-4:]:
+			raise ValueError(f"Given path for the configuration file does not include file extension '.ini', given was {configpath}")
 		self.config = configparser.ConfigParser()
-		self.config.read(configPath)
+		self.config.read(configpath)
 		self.delim = self.config["PARSER"]["delimiter"]
 
-		self.basedir = "/".join(basePath.split("/")[:-1]) + "/"
-		self.doctype = basePath.split(".")[-1]
+		self.basedir = "/".join(basepath.split("/")[:-1]) + "/"
+		self.doctype = basepath.split(".")[-1]
 
 	def getChildrenAndLoadvars(self, content, path):
 		"""Scans the supplied content for flags of loaded transferfiles and other included files (nested)
 
-		:param content: file-object/list<str> (from open(...) as f, pass f). This is the supplied content which will be crawled line by line
-		:param path: str, path of the file which content is being scanned.
+		:param content: (from open(...) as f, pass f). This is the supplied content which will be scanned line by line
+		:type content: iterable of str
+		:param path: path of the file which content is being scanned.
+		:type path: str
 		:return: dictionary with keys "files" (list<str> of all paths of found files in the content) and "vars" (list<Transferfile Object> of found loadvariables-statements)
 		"""
 		# returns array of all paths of referenced files in content
@@ -74,6 +87,8 @@ class mvar:
 		return {"files": includes, "vars": loadvars}
 
 	def collect(self):
+		"""Scan over all mentioned documents (document tree) starting from the basepath and collect all mentioned transferfiles with their namespaces. No parameters nor returns. Modifies mvar.loadvars, mvar.crawledfiles.		
+		"""
 		print(f"Started collecting all loaded transferfiles in the project/document {self.basepath}")
 		queue = [self.basepath]
 		history = [self.basepath]
@@ -110,6 +125,8 @@ class mvar:
 		print(f"End of collection, found in total {len(loadvars)} loaded transferfiles when scanning {len(history)} files\n-------------------------------------------")
 
 	def loadloadvars(self):
+		"""Load variables from all transferfile objects in self.loadvars into their objects. Initiates/modifies mvar.total_num_of_vars to be the total number of loaded variables by all transferfiles. No parameters nor return.
+		"""
 		print(f"Now loading a total of {len(self.loadvars)} transferfile:")
 		self.total_num_of_vars = 0 # statistics :)
 		for l in self.loadvars:
@@ -117,6 +134,10 @@ class mvar:
 		print(f"Done loading all the transferfiles, found a total of {self.total_num_of_vars} variables.\n-------------------------------------------")
 
 	def checkconflicts(self):
+		"""Go over all loaded transferfiles and check if there are variables names used multiple times, prints a warning if so. If there are namespaces used multiple times, it prints an error but still proceeds, as this could be intentional (for reasons byond my comprehension)
+
+		:return: bool, False if there have been any error, True if there where only warnings.
+		"""
 		# output warnings and errors if there are namespaces of loaded transferfiles used multiple times
 		goodtogo = True
 		varnames = []
@@ -134,6 +155,7 @@ class mvar:
 					for l in self.loadvars:
 						if l.name == key:
 							doubles += f"\n\t{l.name} for {l.path} in {l.originpath}"
+			# doesnt raise a real Exception, as this can be intentional. For raising Exception, wrap this method to evaluate the return.
 			print(f"Error while collecting transfer files: A namespace is used multiple times! {doubles}")
 		# check if the variable names are not equal, collect all names:
 		elif len(set(varnames)) != len(varnames):
@@ -146,7 +168,8 @@ class mvar:
 	def makeabbrevtable(self, path=None):
 		"""Build a table of abbreviations from all loaded transferfiles/variables/namespaces. This is heavily dependent on config.ini, where you set attributes like a header (in your language), escaped namespaces (that should not be included), etc. 
 
-		:param path: optional str, filename/path to where it should be saved. Default None results in abbrev.typ/.tex in the root directory of the project.
+		:param path: filename/path to where it should be saved. Default None results in abbrev.typ/.tex in the root directory of the project.
+		:type path: str, optional
 		"""
 
 		print(f"Now building the table of abbreviations.")
@@ -222,6 +245,21 @@ class mvar:
 
 
 class transferfile:
+	"""Handle transferfiles, including loading all their variables and other metadata.
+
+	:param path: path of this transferfile relative to the root of the document/python script
+	:type path: str
+	:param name: namespace as used in the document
+	:type name: str
+	:param originpath: path to the document which references this transferfile, relative to the root/python script
+	:type originpath: str
+	:param basedir: path of the main document relative to the python script/root
+	:type basedir: str
+	:param delim: separator between columns in the transferfile, default ','
+	:type delim: str, optional
+	:param doctype: type of the project, either "tex" or "typ". Default None
+	:type doctype: str, optional
+	"""
 	# basically csv parser with bonus steps...
 	def __init__(self, path, name, originpath, basedir, delim=",", doctype=None):
 		self.path = path # path of this transferfile relative to the python script
@@ -243,6 +281,8 @@ class transferfile:
 		self.relpath = "./" + "/".join(diff)
 	
 	def loadvars(self):
+		"""Load the variables from the file (transferfile.path) this transferfile is connected to and parse them into self.content -> list<list<str>>. No parameters nor return.
+		"""
 		self.content = []
 		with open(self.path, "r") as file:
 			for l in file:
@@ -251,12 +291,15 @@ class transferfile:
 		return len(self.content) # for statistics :)
 
 	def varnames(self):
+		"""Get all names of loaded variables in self.content
+		:return: list<str> of variable names
+		"""
 		if len(self.content) == 0:
 			print(f"This transferfile has no content or has not been loaded: {self.path}")
 		return [l[0] for l in self.content]
 
 	def tocommand(self, newpath=None):
-		# newpath: if the command will be called from another then the standard directory, change the path. Not yet implemented!
+		# newpath: if the command will be called from another than the standard directory, change the path. Not yet implemented!
 		if self.doctype == None:
 			print(f"Error: no doctype declared/detected for transferfile from {self.path} in initalisation of this transferfile object")
 			return 0

@@ -2,8 +2,10 @@
  Simple interface for numerical outputs (Python, Matlab) and documents (LaTeX, Typst). 
  This project is still in its very early stages and you may find comments like "not yet implemented" in the code as well as rudimentary test files in the directories. If you just want to interface between LaTeX and Matlab, feel free to use the (more stable) implementation in [matlab-latex-variables](https://github.com/ma4096/matlab-latex-variables). 
 
+ For some reason this repo also includes a python script/function to compile PDFs from a template typst document with directly passing variables (no need for a transferfile). Useful for quick and dirty automatic document generation. 
+
 ## Disclaimer
-Always make a backup of your project before experimenting with these functionalities. Some scripts directly write to files with paths you specify or default relative paths `abbrev.typ/.tex`, `[your project]-precompiled.typ` or `loader_collection.typ/.tex`. If you already have these files, they will be overwritten without mercy. When you input your own files/paths, make sure you read the function docs (which I am currently working on) and don't confuse an input with an output. 
+Always make a backup of your project before experimenting with these functionalities. Some python scripts directly write to files with paths you specify or default relative paths `abbrev.typ/.tex`, `[your project]-precompiled.typ` or `loader_collection.typ/.tex`. If you already have these files, they will be overwritten without mercy. When you input your own files/paths, make sure you read the function docs (which I am currently working on) and don't confuse an input with an output. 
 
 I am not a professional software developer and do this project for fun. This project tree is quite unorganized with each folder containing the implementation in the given language as well as examples and general testing I use in development. The root contains the precompiler.
 
@@ -12,8 +14,8 @@ When writing documentation of technical projects in LaTeX, I often had to update
 The name mvar originally comes from matlab variables.
 
 ## Usage
-There are currently three parts: Some software/script (Python or Matlab) inputs variables into a transfer file (csv) which then get loaded/parsed into an output document-script (LaTeX or typst). In the document the variables can be referenced (details below) with or without the unit. 
-Currently there is a precompilation needed to prevent namespace collisions and generate a list of abbrevations.
+There are currently three parts: Some software/script (Python or Matlab) inputs variables into a transferfile (csv) which then get loaded/parsed into an output document-script (LaTeX or typst). In the document the variables can be referenced (details below) with or without the unit. 
+The basic functions work without any more steps, but to build a table of abbreviations, using `mvar.py` is essential. Also, typst documents can be directly generated from a python script using `typst_fullsuite.py`, see its documentation.
 
 ### Matlab
 Put the function transfer.m into a folder in the Matlab PATH so Matlab can find it.
@@ -91,18 +93,18 @@ $ #a.bsi $
 ### typst fullsuite
 A typst document can be used as a template for creating a fully parametrized document from a Python script using `typst_fullsuite([path to template.typ], [vars], save=[output.pdf])`. You need to include `mvar.typ` and `typst_fullsuite.py` in your directory and import the python function. See the python file for a more detailed documentation. Variables are passed as a list of lists with each variable defined as `["name",1,"-","-"]` for numbers or `["name","this is text","logic","-"]` for general strings. Also see the example for how to create a template with the variables, use `#m..variablename`, where `m` is a dictionary which is defined on compilation.  
 
-### Precompilation (not finished!)
-Precompilation is currently working and but not required for LaTeX and has not yet been implemented for typst.
+### Precompilation and list of abbreviations
+Precompilation is currently working but not required for LaTeX and has not yet been implemented for typst. Both document types allow for the creation of a list of abbreviations:
 
-Here the list of abbreviations is build from all the imported transfer files in a given document (LaTeX/typst), where the type of document is determined by the file extension.
-Also all the imported transfer files are collected into a single file called `loader_collection.tex`, from where they are imported into the document at its compilation instead from all over the place inside the document to allow for cross references. This feature is still under construction and not fully working! 
+The list of abbreviations is build from all the imported transfer files in a given document (LaTeX/typst), where the type of document is determined by the file extension. A config file `config.ini` allows for customisation like naming of columns (for language adaption).
+
+During precompilation the imported transfer files are collected into a single file called `loader_collection.tex`, from where they are imported into the document at its compilation instead from all over the place inside the document to allow for cross references.
 
 To perform the precompilation execute `mvar.py` in your projects main directory:
 ``` python mvar.py main.tex -p```
 You can also skip generating the list of abbreviations by adding the flag `-na` (no abbreviation)
-The configuration for list of abbreviations is specified in `config.ini` where you can edit the appearance/order of coloumns and rows (documented in place). It is only yet implemented for LaTeX and only includes numerical (scalar) variables or abbreviations which don't have a value (default value `-`). 
 
-A precompilation is only needed when you include a new transfer file in your document tree, not if the data in the transfer files changes. If you are using the list of abbreviations you always need to precompile to update the list.
+A precompilation is only reasonable when you include a new transfer file in your document tree, not if the data in the transferfiles changes. If you are using the list of abbreviations you always need to precompile to update the list.
 
 ## Credits
 The basic csv-parser is copied from Stackexchange user's Phelype Oleinik answer (edited by Mensch) with a lot of own additions. https://tex.stackexchange.com/questions/474397/populate-information-from-a-csv-file-into-a-latex-document-specifically-into-th/474404#474404 , last accessed May 20, 2024
@@ -115,7 +117,6 @@ Lu Ce (2024). Matlab matrix to LaTeX conversion example (https://www.mathworks.c
 - Change from csv using comma as the separator to tab, allowing for more flexibility as what can be "transferred" (e.g. normal text). Currently LaTeX is not accepting it.
 - Access elements of matrices/arrays directly. Currently they have to be manually saved as scalar values, as matrices are always shown in pmatrix-environments.
 - Allow for all Matlab environment variables to be exported at once. It can get annoying with lots of variables, still less annoying than doing it by hand ;)
-- Build a list of abbreviations for typst
 - Build a variable explorer as an entirely own program (likely Python/tkinter based)
 - Allow for unit and description to be specified in Matlab
 - Change the way variables are exported in Matlab

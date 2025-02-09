@@ -24,7 +24,7 @@
 		//[#key \ ]
 		if "\\" in val { // detect latex, for e.g. formulas
 			val = mitex(val) // currently not fully working, 
-		} else if unit == "logic" {
+		} else if unit == "logic" or unit == "-" {
 			val = val
 		} else {
 			// can produce problems with names being equal
@@ -46,11 +46,14 @@
 	return results
 }
 
-
+// "1" for true, "0" for false, everything else just prints var (for debugging/when working with typst_fullsuite.py)
+// not working in the moment, just already implement it in python when you want a decision
 #let mlogic(var, tr, fa) = {
-	if var == "1" {
+	if var == "True" {
 		tr
-	} else {
+	} else if var == "False" {
 		fa
+	} else {
+		[(mvar logic on #var)]
 	}
 }
