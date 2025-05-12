@@ -349,7 +349,6 @@ def filterLoadvarsTypst(s):
 		path = a[3].split("'")[1]
 	return {"name": name, "path": path}
 
-
 def strtobool(val):
 	# from https://stackoverflow.com/questions/715417/converting-from-a-string-to-boolean-in-python
     """Convert a string representation of truth to true (1) or false (0).
